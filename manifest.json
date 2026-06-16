@@ -4,6 +4,8 @@
   "version": "1.0.0",
   "description": "Save selected text on any webpage with one click and save it instantly. Organize, edit, and manage your notes easily.",
   "permissions": ["storage", "contextMenus"],
+  "host_permissions": ["https://api.clickup.com/*"],
+  "options_page": "options.html",
   "content_scripts": [
     {
       "matches": ["<all_urls>"],

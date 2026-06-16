@@ -8,13 +8,41 @@ let selectionModal = null;
 let selectionTimeout = null;
 let currentSelection = null;
 let currentUrl = null;
+let extensionEnabled = true;
 
 // Initialize
 function init() {
   createSelectionIcon();
   createSelectionModal();
   setupSelectionListeners();
+  loadExtensionState();
 }
+
+/**
+ * Load extension enabled state from storage
+ */
+async function loadExtensionState() {
+  try {
+    const result = await chrome.storage.local.get("extensionEnabled");
+    extensionEnabled = result.extensionEnabled !== false; // Default to true
+  } catch (error) {
+    console.error("Error loading extension state:", error);
+    extensionEnabled = true;
+  }
+}
+
+/**
+ * Listen for toggle messages from popup
+ */
+chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
+  if (request.action === "toggleExtension") {
+    extensionEnabled = request.enabled;
+    if (!extensionEnabled) {
+      hideIcon();
+      hideModal();
+    }
+  }
+});
 
 /**
  * Create the floating selection icon
@@ -61,7 +89,7 @@ function createSelectionModal() {
       <div class="quick-note-modal-body">
         <div class="quick-note-preview">
           <div class="quick-note-preview-label">Selected Text:</div>
-          <div class="quick-note-preview-text"></div>
+          <textarea class="quick-note-preview-textarea"></textarea>
         </div>
         <div class="quick-note-url-option">
           <label class="quick-note-checkbox">
@@ -73,7 +101,11 @@ function createSelectionModal() {
       </div>
       <div class="quick-note-modal-footer">
         <button class="quick-note-btn quick-note-btn-secondary quick-note-cancel">Cancel</button>
-        <button class="quick-note-btn quick-note-btn-primary quick-note-save">Save Note</button>
+        <button class="quick-note-btn quick-note-btn-primary quick-note-save">
+          <div class="btn-content">
+            <span>Save Note</span>
+          </div>
+        </button>
       </div>
     </div>
   `;
@@ -98,6 +130,16 @@ function createSelectionModal() {
     }
   });
 
+  // Close on Escape key
+  document.addEventListener("keydown", (e) => {
+    if (
+      e.key === "Escape" &&
+      !selectionModal.classList.contains("quick-note-modal-hidden")
+    ) {
+      hideModal();
+    }
+  });
+
   // URL checkbox toggle
   selectionModal
     .querySelector("#quick-note-include-url")
@@ -107,6 +149,13 @@ function createSelectionModal() {
       );
       urlDisplay.style.display = e.target.checked ? "block" : "none";
     });
+
+  // Auto-resize textarea in modal
+  const textarea = selectionModal.querySelector(".quick-note-preview-textarea");
+  textarea.addEventListener("input", (e) => {
+    e.target.style.height = "auto";
+    e.target.style.height = Math.min(e.target.scrollHeight, 320) + "px";
+  });
 }
 
 /**
@@ -140,7 +189,7 @@ function setupSelectionListeners() {
       clearTimeout(scrollTimeout);
       scrollTimeout = setTimeout(() => {
         const selection = window.getSelection();
-        if (selection && selection.toString().trim()) {
+        if (selection && selection.toString().trim() && extensionEnabled) {
           showIconForSelection();
         }
       }, 150);
@@ -158,6 +207,11 @@ function setupSelectionListeners() {
  * Handle text selection
  */
 function handleTextSelection(e) {
+  // Don't process if extension is disabled
+  if (!extensionEnabled) {
+    return;
+  }
+
   // Don't process if clicking on the icon or modal
   if (selectionIcon.contains(e.target) || selectionModal.contains(e.target)) {
     return;
@@ -201,6 +255,11 @@ function handleSelectionChange() {
  * Show icon near the selection
  */
 function showIconForSelection() {
+  // Don't show if extension is disabled
+  if (!extensionEnabled) {
+    return;
+  }
+
   const selection = window.getSelection();
   if (!selection.rangeCount) return;
 
@@ -210,8 +269,8 @@ function showIconForSelection() {
   if (rect.width === 0 && rect.height === 0) return;
 
   // Position icon at the end of selection
-  const iconWidth = 40;
-  const iconHeight = 40;
+  const iconWidth = 44;
+  const iconHeight = 44;
   const offset = 8;
 
   let left = rect.right + offset + window.scrollX;
@@ -259,26 +318,33 @@ function hideIcon() {
  */
 function showModal() {
   // Populate modal with current selection
-  const previewText = selectionModal.querySelector(".quick-note-preview-text");
+  const previewTextarea = selectionModal.querySelector(
+    ".quick-note-preview-textarea"
+  );
   const urlDisplay = selectionModal.querySelector(".quick-note-url-display");
   const includeUrlCheckbox = selectionModal.querySelector(
     "#quick-note-include-url"
   );
 
-  // Truncate long text
-  const displayText =
-    currentSelection.length > 200
-      ? currentSelection.substring(0, 200) + "..."
-      : currentSelection;
-
-  previewText.textContent = displayText;
+  previewTextarea.value = currentSelection;
   urlDisplay.textContent = currentUrl;
   includeUrlCheckbox.checked = true;
   urlDisplay.style.display = "block";
 
+  // Auto-resize textarea
+  previewTextarea.style.height = "auto";
+  previewTextarea.style.height =
+    Math.min(previewTextarea.scrollHeight, 320) + "px";
+
   // Show modal
   selectionModal.classList.remove("quick-note-modal-hidden");
   selectionModal.classList.add("quick-note-modal-visible");
+
+  // Focus textarea
+  setTimeout(() => {
+    previewTextarea.focus();
+    previewTextarea.select();
+  }, 100);
 }
 
 /**
@@ -325,8 +391,8 @@ function handleIconClick(e) {
  * Handle save from modal
  */
 async function handleSaveFromModal() {
-  // Capture values immediately
-  const textToSave = currentSelection;
+  const textarea = selectionModal.querySelector(".quick-note-preview-textarea");
+  const textToSave = textarea.value.trim();
   const urlToSave = currentUrl;
   const includeUrl = selectionModal.querySelector(
     "#quick-note-include-url"
@@ -335,42 +401,61 @@ async function handleSaveFromModal() {
   const finalUrl = includeUrl ? urlToSave : null;
 
   if (!textToSave) {
-    console.error("No text to save");
-    hideModal();
+    textarea.classList.add("shake");
+    setTimeout(() => {
+      textarea.classList.remove("shake");
+    }, 300);
     return;
   }
 
   try {
-    // Add success animation to modal
     const saveBtn = selectionModal.querySelector(".quick-note-save");
-    saveBtn.textContent = "✓ Saved!";
-    saveBtn.style.background =
-      "linear-gradient(135deg, #10b981 0%, #059669 100%)";
+    const btnContent = saveBtn.querySelector(".btn-content");
+
+    // Show saving state
+    saveBtn.classList.add("saving");
+    saveBtn.disabled = true;
+    btnContent.innerHTML = `
+      <svg class="spinner" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <path d="M21 12a9 9 0 1 1-6.219-8.56"></path>
+      </svg>
+      <span>Saving...</span>
+    `;
 
     // Send message to background script to save note
-    chrome.runtime.sendMessage(
-      {
-        action: "saveNote",
-        text: textToSave,
-        url: finalUrl,
-      },
-      (response) => {
-        if (chrome.runtime.lastError) {
-          console.error("Error sending message:", chrome.runtime.lastError);
-        } else {
-          console.log("Note saved successfully", response);
-        }
-      }
-    );
+    await chrome.runtime.sendMessage({
+      action: "saveNote",
+      text: textToSave,
+      url: finalUrl,
+    });
+
+    // Show success state
+    saveBtn.classList.remove("saving");
+    saveBtn.classList.add("saved");
+    btnContent.innerHTML = `
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <polyline points="20 6 9 17 4 12"></polyline>
+      </svg>
+      <span>Saved!</span>
+    `;
 
     // Hide modal after short delay
     setTimeout(() => {
       hideModal();
-      saveBtn.textContent = "Save Note";
-      saveBtn.style.background = "";
-    }, 800);
+      saveBtn.disabled = false;
+      saveBtn.classList.remove("saved");
+      btnContent.innerHTML = `<span>Save Note</span>`;
+    }, 1000);
   } catch (error) {
     console.error("Error in handleSaveFromModal:", error);
+
+    const saveBtn = selectionModal.querySelector(".quick-note-save");
+    const btnContent = saveBtn.querySelector(".btn-content");
+    saveBtn.classList.remove("saving");
+    saveBtn.disabled = false;
+    btnContent.innerHTML = `<span>Save Note</span>`;
+
+    alert("Failed to save note. Please try again.");
   }
 }
 

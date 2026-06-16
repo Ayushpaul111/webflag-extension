@@ -9,12 +9,32 @@ const newNoteUrl = document.getElementById("newNoteUrl");
 const addNoteBtn = document.getElementById("addNoteBtn");
 const notesList = document.getElementById("notesList");
 const emptyState = document.getElementById("emptyState");
+const extensionToggle = document.getElementById("extensionToggle");
+const settingsBtn = document.getElementById("settingsBtn");
+const toast = document.getElementById("toast");
+const toastMessage = document.getElementById("toastMessage");
+const toastAction = document.getElementById("toastAction");
 
 // Initialize popup
 document.addEventListener("DOMContentLoaded", async () => {
+  await loadToggleState();
   await loadAndRenderNotes();
   setupEventListeners();
 });
+
+/**
+ * Load toggle state from storage
+ */
+async function loadToggleState() {
+  try {
+    const result = await chrome.storage.local.get("extensionEnabled");
+    const isEnabled = result.extensionEnabled !== false; // Default to true
+    extensionToggle.checked = isEnabled;
+  } catch (error) {
+    console.error("Error loading toggle state:", error);
+    extensionToggle.checked = true;
+  }
+}
 
 /**
  * Set up event listeners
@@ -36,6 +56,72 @@ function setupEventListeners() {
     e.target.style.height = "auto";
     e.target.style.height = e.target.scrollHeight + "px";
   });
+
+  // Toggle switch handler
+  extensionToggle.addEventListener("change", handleToggleChange);
+
+  // Open ClickUp settings / onboarding page
+  settingsBtn.addEventListener("click", () => {
+    chrome.runtime.openOptionsPage();
+  });
+}
+
+let toastTimer = null;
+
+/**
+ * Show a transient toast message at the top of the popup.
+ * @param {string} message
+ * @param {string} type - "success" | "error" | "info"
+ * @param {Object} [action] - { label, onClick }
+ */
+function showToast(message, type = "info", action = null) {
+  clearTimeout(toastTimer);
+  toastMessage.textContent = message;
+  toast.className = `toast toast-${type}`;
+  toast.style.display = "flex";
+
+  if (action) {
+    toastAction.textContent = action.label;
+    toastAction.style.display = "inline-block";
+    toastAction.onclick = action.onClick;
+  } else {
+    toastAction.style.display = "none";
+    toastAction.onclick = null;
+  }
+
+  // Auto-hide (longer when there's an action to click)
+  toastTimer = setTimeout(
+    () => {
+      toast.style.display = "none";
+    },
+    action ? 6000 : 3000
+  );
+}
+
+/**
+ * Handle toggle switch change
+ */
+async function handleToggleChange(e) {
+  const isEnabled = e.target.checked;
+
+  try {
+    await chrome.storage.local.set({ extensionEnabled: isEnabled });
+
+    // Send message to all tabs to update their state
+    const tabs = await chrome.tabs.query({});
+    tabs.forEach((tab) => {
+      chrome.tabs
+        .sendMessage(tab.id, {
+          action: "toggleExtension",
+          enabled: isEnabled,
+        })
+        .catch(() => {
+          // Ignore errors for tabs that don't have content script
+        });
+    });
+  } catch (error) {
+    console.error("Error saving toggle state:", error);
+  }
 }
 
 /**
@@ -110,6 +196,19 @@ function createNoteElement(note, index, totalNotes) {
   `
     : "";
 
+  // ClickUp synced badge (shown once a note has been pushed)
+  const clickupSection = note.clickupTaskId
+    ? `
+    <a href="${escapeHtml(note.clickupTaskUrl || "#")}" target="_blank"
+       class="note-clickup-badge" title="Open subtask in ClickUp">
+      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+        <polyline points="20 6 9 17 4 12"></polyline>
+      </svg>
+      In ClickUp
+    </a>
+  `
+    : "";
+
   noteCard.innerHTML = `
     <div class="note-header">
       <div class="note-meta">${dateStr}</div>
@@ -130,6 +229,17 @@ function createNoteElement(note, index, totalNotes) {
             </svg>
           </button>
         </div>
+        <button class="note-action-btn clickup ${
+          note.clickupTaskId ? "synced" : ""
+        }" title="${
+    note.clickupTaskId ? "Synced — send again to ClickUp" : "Send to ClickUp"
+  }" data-action="clickup">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+            <polyline points="17 8 12 3 7 8"></polyline>
+            <line x1="12" y1="3" x2="12" y2="15"></line>
+          </svg>
+        </button>
         <button class="note-action-btn" title="Edit" data-action="edit">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
@@ -145,10 +255,16 @@ function createNoteElement(note, index, totalNotes) {
       </div>
     </div>
     <div class="note-text">${escapeHtml(displayText)}</div>
-    ${urlSection}
+    <div class="note-badges">${urlSection}${clickupSection}</div>
   `;
 
   // Add event listeners
+  noteCard
+    .querySelector('[data-action="clickup"]')
+    .addEventListener("click", (e) => {
+      e.stopPropagation();
+      handleSendToClickUp(note, e.currentTarget);
+    });
   noteCard
     .querySelector('[data-action="edit"]')
     .addEventListener("click", (e) => {
@@ -363,6 +479,12 @@ async function handleEdit(note) {
  */
 function setupNoteEventListeners(noteElement, note) {
   noteElement
+    .querySelector('[data-action="clickup"]')
+    ?.addEventListener("click", (e) => {
+      e.stopPropagation();
+      handleSendToClickUp(note, e.currentTarget);
+    });
+  noteElement
     .querySelector('[data-action="edit"]')
     ?.addEventListener("click", (e) => {
       e.stopPropagation();
@@ -386,6 +508,60 @@ function setupNoteEventListeners(noteElement, note) {
       e.stopPropagation();
       handleMoveDown(note.id);
     });
+}
+
+/**
+ * Send a note to ClickUp as a subtask of the configured parent task.
+ * @param {Object} note - Note object
+ * @param {HTMLElement} buttonEl - The clicked ClickUp button
+ */
+async function handleSendToClickUp(note, buttonEl) {
+  // Show a loading spinner on the button
+  const originalHtml = buttonEl.innerHTML;
+  buttonEl.disabled = true;
+  buttonEl.classList.add("sending");
+  buttonEl.innerHTML = `
+    <svg class="btn-spinner" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+      <path d="M21 12a9 9 0 1 1-6.219-8.56"></path>
+    </svg>
+  `;
+
+  try {
+    const response = await chrome.runtime.sendMessage({
+      action: "sendNoteToClickUp",
+      note,
+    });
+
+    if (response && response.success) {
+      await StorageHelper.setNoteClickUpInfo(note.id, {
+        taskId: response.taskId,
+        taskUrl: response.taskUrl,
+      });
+      showToast("Sent to ClickUp ✓", "success");
+      await loadAndRenderNotes();
+      return;
+    }
+
+    if (response && response.notConnected) {
+      showToast("Connect ClickUp first to send notes.", "info", {
+        label: "Open settings",
+        onClick: () => chrome.runtime.openOptionsPage(),
+      });
+    } else {
+      showToast(
+        `Couldn't send: ${(response && response.error) || "unknown error"}`,
+        "error"
+      );
+    }
+  } catch (error) {
+    console.error("Error sending to ClickUp:", error);
+    showToast("Failed to send to ClickUp. Please try again.", "error");
+  } finally {
+    // Restore button (only matters when we didn't re-render)
+    buttonEl.disabled = false;
+    buttonEl.classList.remove("sending");
+    buttonEl.innerHTML = originalHtml;
+  }
 }
 
 /**

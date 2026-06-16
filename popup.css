@@ -59,23 +59,194 @@ body {
   color: var(--text-primary);
 }
 
+.header-controls {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* Toggle Switch */
+.toggle-switch {
+  position: relative;
+  display: inline-block;
+  width: 48px;
+  height: 26px;
+  cursor: pointer;
+}
+
+.toggle-switch input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.toggle-slider {
+  position: absolute;
+  cursor: pointer;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: #ddd;
+  transition: all 0.3s ease;
+  border-radius: 34px;
+}
+
+.toggle-slider:before {
+  position: absolute;
+  content: "";
+  height: 20px;
+  width: 20px;
+  left: 3px;
+  bottom: 3px;
+  background-color: white;
+  transition: all 0.3s ease;
+  border-radius: 50%;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+.toggle-switch input:checked + .toggle-slider {
+  background-color: var(--accent-color);
+}
+
+.toggle-switch input:checked + .toggle-slider:before {
+  transform: translateX(22px);
+}
+
+.toggle-switch:hover .toggle-slider {
+  box-shadow: 0 0 0 3px rgba(79, 122, 247, 0.1);
+}
+
+/* Settings gear button */
 .icon-btn {
-  width: 36px;
-  height: 36px;
   display: flex;
   align-items: center;
   justify-content: center;
+  width: 32px;
+  height: 32px;
   background: transparent;
   border: none;
   border-radius: var(--radius-sm);
   cursor: pointer;
   color: var(--text-secondary);
-  transition: all 0.2s ease;
+  transition: all 0.15s ease;
 }
 
 .icon-btn:hover {
   background: var(--bg-hover);
-  color: var(--text-primary);
+  color: var(--accent-color);
+  transform: rotate(30deg);
+}
+
+/* ClickUp send button states */
+.note-action-btn.clickup:hover {
+  background: rgba(79, 122, 247, 0.1);
+  color: var(--accent-color);
+}
+
+.note-action-btn.clickup.synced {
+  color: var(--success, #16a34a);
+}
+
+.note-action-btn .btn-spinner {
+  animation: spin 0.7s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* Note badges row (link + ClickUp) */
+.note-badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.note-badges:empty {
+  display: none;
+}
+
+.note-clickup-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: rgba(22, 163, 74, 0.1);
+  color: #16a34a;
+  padding: 6px 10px;
+  border-radius: var(--radius-sm);
+  font-size: 12px;
+  font-weight: 600;
+  text-decoration: none;
+  border: 1px solid rgba(22, 163, 74, 0.2);
+  transition: all 0.2s ease;
+}
+
+.note-clickup-badge:hover {
+  background: rgba(22, 163, 74, 0.16);
+  border-color: rgba(22, 163, 74, 0.35);
+}
+
+/* Toast notifications */
+.toast {
+  position: fixed;
+  top: 12px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  max-width: 90%;
+  padding: 10px 16px;
+  border-radius: var(--radius-md);
+  font-size: 13px;
+  font-weight: 500;
+  color: #fff;
+  box-shadow: var(--shadow-lg);
+  animation: toastIn 0.2s ease;
+}
+
+@keyframes toastIn {
+  from {
+    opacity: 0;
+    transform: translateX(-50%) translateY(-8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+  }
+}
+
+.toast-success {
+  background: #16a34a;
+}
+
+.toast-error {
+  background: #dc3545;
+}
+
+.toast-info {
+  background: #334155;
+}
+
+.toast-action {
+  background: rgba(255, 255, 255, 0.2);
+  border: none;
+  color: #fff;
+  font-size: 12px;
+  font-weight: 600;
+  padding: 4px 10px;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  white-space: nowrap;
+  font-family: inherit;
+}
+
+.toast-action:hover {
+  background: rgba(255, 255, 255, 0.3);
 }
 
 /* Main Content */
@@ -347,11 +518,6 @@ body {
 
 .reorder-btn:disabled {
   opacity: 0.25;
-  cursor: not-allowed;
-}
-
-.reorder-btn:disabled {
-  opacity: 0.3;
   cursor: not-allowed;
 }
 
