@@ -3,19 +3,44 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Web Note — ClickUp Settings</title>
+    <title>Webtest — ClickUp Settings</title>
     <link rel="stylesheet" href="options.css" />
   </head>
   <body>
     <div class="page">
       <header class="page-header">
-        <h1>📝 Web Note → ClickUp</h1>
+        <h1>🐞 Webtest</h1>
         <p class="subtitle">
-          Connect your ClickUp account to send notes as subtasks. Everything
-          stays in your browser — no server, no account required.
+          Settings &amp; usage. Everything stays in your browser — no server, no
+          account required.
         </p>
       </header>
 
+      <div class="layout">
+        <!-- Left tab navigation -->
+        <nav class="sidebar" role="tablist" aria-label="Settings sections">
+          <button
+            class="tab-btn active"
+            data-tab="clickup"
+            role="tab"
+            aria-selected="true"
+          >
+            🔗 ClickUp
+          </button>
+          <button
+            class="tab-btn"
+            data-tab="shortcuts"
+            role="tab"
+            aria-selected="false"
+          >
+            ⌨️ Shortcuts
+          </button>
+        </nav>
+
+        <!-- Right content area -->
+        <div class="tab-content">
+          <!-- ClickUp connection tab -->
+          <section class="tab-panel active" id="tab-clickup" role="tabpanel">
       <!-- Step 1: API token -->
       <section class="card">
         <div class="card-step">Step 1</div>
@@ -88,7 +113,7 @@
           type="text"
           id="newTaskNameInput"
           class="text-input"
-          placeholder="e.g. My Web Notes"
+          placeholder="e.g. Webtest Bug Reports"
         />
 
         <label class="radio-row">
@@ -110,6 +135,56 @@
         </button>
       </div>
       <div id="saveStatus" class="status status-block" style="display: none"></div>
+          </section>
+
+          <!-- Shortcuts & usage tab -->
+          <section class="tab-panel" id="tab-shortcuts" role="tabpanel">
+            <div class="card">
+              <h2>Keyboard shortcuts</h2>
+              <p class="hint">
+                The fastest way to capture a bug. Shortcuts work on any page.
+              </p>
+
+              <div class="shortcut-row">
+                <div class="shortcut-info">
+                  <div class="shortcut-name">🎯 Pick an element</div>
+                  <div class="shortcut-desc">
+                    Highlight and click any element on the page to report a bug
+                    on it. Also available from the 🎯 button in the popup.
+                  </div>
+                </div>
+                <div class="shortcut-keys">
+                  <kbd>Ctrl</kbd> + <kbd>Shift</kbd> + <kbd>E</kbd>
+                  <div class="shortcut-keys-mac">
+                    <kbd>⌘</kbd> + <kbd>Shift</kbd> + <kbd>E</kbd> on Mac
+                  </div>
+                </div>
+              </div>
+
+              <p class="hint shortcut-rebind">
+                Shortcuts are suggestions and may differ if another extension
+                already uses them. View or change them at
+                <code>chrome://extensions/shortcuts</code>.
+              </p>
+            </div>
+
+            <div class="card">
+              <h2>Other ways to capture</h2>
+              <ul class="usage-list">
+                <li>
+                  <strong>Select text</strong> on any page → click the floating
+                  💾 icon to capture it as a note.
+                </li>
+                <li>
+                  <strong>Right-click</strong> selected text →
+                  <em>“Save selection to Webtest”</em> (text only, no
+                  screenshot).
+                </li>
+              </ul>
+            </div>
+          </section>
+        </div>
+      </div>
     </div>
 
     <script src="clickup.js"></script>

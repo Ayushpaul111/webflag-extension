@@ -58,6 +58,25 @@ function attachListeners() {
 
   el.saveBtn.addEventListener("click", handleSave);
   el.disconnectBtn.addEventListener("click", handleDisconnect);
+
+  document.querySelectorAll(".tab-btn").forEach((btn) => {
+    btn.addEventListener("click", () => switchTab(btn.dataset.tab));
+  });
+}
+
+/**
+ * Show the panel for `tabId` and mark its sidebar button active.
+ * @param {string} tabId - matches data-tab on the button and id="tab-<id>"
+ */
+function switchTab(tabId) {
+  document.querySelectorAll(".tab-btn").forEach((btn) => {
+    const active = btn.dataset.tab === tabId;
+    btn.classList.toggle("active", active);
+    btn.setAttribute("aria-selected", active ? "true" : "false");
+  });
+  document.querySelectorAll(".tab-panel").forEach((panel) => {
+    panel.classList.toggle("active", panel.id === `tab-${tabId}`);
+  });
 }
 
 /* ---------- Status helpers ---------- */

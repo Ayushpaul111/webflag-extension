@@ -144,10 +144,6 @@ body {
   color: var(--accent-color);
 }
 
-.note-action-btn.clickup.synced {
-  color: var(--success, #16a34a);
-}
-
 .note-action-btn .btn-spinner {
   animation: spin 0.7s linear infinite;
 }
@@ -158,7 +154,7 @@ body {
   }
 }
 
-/* Note badges row (link + ClickUp) */
+/* Note badges row (link) */
 .note-badges {
   display: flex;
   flex-wrap: wrap;
@@ -167,26 +163,6 @@ body {
 
 .note-badges:empty {
   display: none;
-}
-
-.note-clickup-badge {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  background: rgba(22, 163, 74, 0.1);
-  color: #16a34a;
-  padding: 6px 10px;
-  border-radius: var(--radius-sm);
-  font-size: 12px;
-  font-weight: 600;
-  text-decoration: none;
-  border: 1px solid rgba(22, 163, 74, 0.2);
-  transition: all 0.2s ease;
-}
-
-.note-clickup-badge:hover {
-  background: rgba(22, 163, 74, 0.16);
-  border-color: rgba(22, 163, 74, 0.35);
 }
 
 /* Toast notifications */
@@ -444,6 +420,70 @@ body {
   margin-bottom: 10px;
   word-wrap: break-word;
   white-space: pre-wrap;
+}
+
+/* Picked element selector */
+.note-element {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  max-width: 100%;
+  margin-bottom: 10px;
+  padding: 5px 9px;
+  background: rgba(123, 104, 238, 0.1);
+  border: 1px solid rgba(123, 104, 238, 0.25);
+  border-radius: var(--radius-sm);
+  color: #7b68ee;
+}
+
+.note-element code {
+  font-family: 'SF Mono', Monaco, 'Cascadia Code', 'Courier New', monospace;
+  font-size: 11px;
+  color: #7b68ee;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Captured environment chips */
+.note-env {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 10px;
+}
+
+.note-env-chip {
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--text-secondary);
+  background: rgba(148, 163, 184, 0.12);
+  border: 1px solid rgba(148, 163, 184, 0.22);
+  padding: 3px 8px;
+  border-radius: 999px;
+  white-space: nowrap;
+}
+
+/* Captured screenshot thumbnail */
+.note-screenshot {
+  margin-bottom: 10px;
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+  border: 1px solid var(--border-color);
+  cursor: zoom-in;
+  max-height: 120px;
+}
+
+.note-screenshot img {
+  display: block;
+  width: 100%;
+  height: auto;
+  object-fit: cover;
+}
+
+.note-screenshot.expanded {
+  max-height: none;
+  cursor: zoom-out;
 }
 
 .note-link-badge {

@@ -162,6 +162,54 @@ const ClickUpAPI = {
       body,
     });
   },
+
+  /**
+   * Upload a file attachment to a task (used for bug-report screenshots).
+   * Uses multipart/form-data, so it can't go through `request()` (which sends
+   * JSON). The browser sets the multipart boundary header automatically when
+   * given a FormData body — do NOT set Content-Type manually.
+   * @param {string} token
+   * @param {string} taskId
+   * @param {Blob} blob - File contents
+   * @param {string} filename
+   * @returns {Promise<Object>} The created attachment metadata
+   */
+  async uploadAttachment(token, taskId, blob, filename) {
+    if (!token) throw new Error("Missing ClickUp API token.");
+
+    const form = new FormData();
+    form.append("attachment", blob, filename);
+
+    let response;
+    try {
+      response = await fetch(`${this.BASE_URL}/task/${taskId}/attachment`, {
+        method: "POST",
+        headers: { Authorization: token },
+        body: form,
+      });
+    } catch (networkError) {
+      throw new Error("Could not reach ClickUp to upload the screenshot.");
+    }
+
+    if (!response.ok) {
+      let data = null;
+      try {
+        data = await response.json();
+      } catch (e) {
+        data = null;
+      }
+      const message =
+        (data && (data.err || data.error)) ||
+        `Attachment upload failed (HTTP ${response.status}).`;
+      throw new Error(message);
+    }
+
+    try {
+      return await response.json();
+    } catch (e) {
+      return {};
+    }
+  },
 };
 
 // Make available to importScripts (service worker) and module-less pages.

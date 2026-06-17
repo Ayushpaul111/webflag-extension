@@ -11,6 +11,7 @@ const notesList = document.getElementById("notesList");
 const emptyState = document.getElementById("emptyState");
 const extensionToggle = document.getElementById("extensionToggle");
 const settingsBtn = document.getElementById("settingsBtn");
+const pickElementBtn = document.getElementById("pickElementBtn");
 const toast = document.getElementById("toast");
 const toastMessage = document.getElementById("toastMessage");
 const toastAction = document.getElementById("toastAction");
@@ -64,6 +65,31 @@ function setupEventListeners() {
   settingsBtn.addEventListener("click", () => {
     chrome.runtime.openOptionsPage();
   });
+
+  // Start the element picker on the active tab
+  pickElementBtn.addEventListener("click", handlePickElement);
+}
+
+/**
+ * Ask the active tab's content script to start the element picker, then close
+ * the popup so the tester can interact with the page.
+ */
+async function handlePickElement() {
+  try {
+    const [tab] = await chrome.tabs.query({
+      active: true,
+      currentWindow: true,
+    });
+    if (!tab || tab.id == null) {
+      showToast("No active tab to pick from.", "error");
+      return;
+    }
+    await chrome.tabs.sendMessage(tab.id, { action: "startElementPicker" });
+    window.close();
+  } catch (error) {
+    // Restricted pages (chrome://, Web Store, etc.) have no content script.
+    showToast("Can't pick elements on this page.", "error");
+  }
 }
 
 let toastTimer = null;
@@ -196,17 +222,38 @@ function createNoteElement(note, index, totalNotes) {
   `
     : "";
 
-  // ClickUp synced badge (shown once a note has been pushed)
-  const clickupSection = note.clickupTaskId
-    ? `
-    <a href="${escapeHtml(note.clickupTaskUrl || "#")}" target="_blank"
-       class="note-clickup-badge" title="Open subtask in ClickUp">
-      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-        <polyline points="20 6 9 17 4 12"></polyline>
-      </svg>
-      In ClickUp
-    </a>
-  `
+  // Element selector (shown for element-picker bug reports)
+  const elementSection = note.element
+    ? `<div class="note-element" title="${escapeHtml(
+        note.element.selector || ""
+      )}">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="4"></circle>
+          <path d="M12 2v3M12 19v3M2 12h3M19 12h3"></path>
+        </svg>
+        <code>${escapeHtml(note.element.selector || note.element.tag || "element")}</code>
+      </div>`
+    : "";
+
+  // Environment chips (shown for captured bug reports)
+  const envSection = note.env
+    ? `<div class="note-env">${[
+        `${note.env.browser || ""} ${note.env.browserVersion || ""}`.trim(),
+        note.env.os,
+        note.env.viewport ? `Viewport ${note.env.viewport}` : "",
+        note.env.screen ? `Screen ${note.env.screen}` : "",
+        note.env.dpr ? `DPR ${note.env.dpr}` : "",
+      ]
+        .filter(Boolean)
+        .map((c) => `<span class="note-env-chip">${escapeHtml(c)}</span>`)
+        .join("")}</div>`
+    : "";
+
+  // Screenshot thumbnail (click to expand)
+  const screenshotSection = note.screenshot
+    ? `<div class="note-screenshot" title="Click to expand">
+        <img src="${escapeHtml(note.screenshot)}" alt="Screenshot" loading="lazy">
+      </div>`
     : "";
 
   noteCard.innerHTML = `
@@ -229,11 +276,7 @@ function createNoteElement(note, index, totalNotes) {
             </svg>
           </button>
         </div>
-        <button class="note-action-btn clickup ${
-          note.clickupTaskId ? "synced" : ""
-        }" title="${
-    note.clickupTaskId ? "Synced — send again to ClickUp" : "Send to ClickUp"
-  }" data-action="clickup">
+        <button class="note-action-btn clickup" title="Send to ClickUp" data-action="clickup">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
             <polyline points="17 8 12 3 7 8"></polyline>
@@ -255,7 +298,10 @@ function createNoteElement(note, index, totalNotes) {
       </div>
     </div>
     <div class="note-text">${escapeHtml(displayText)}</div>
-    <div class="note-badges">${urlSection}${clickupSection}</div>
+    ${elementSection}
+    ${envSection}
+    ${screenshotSection}
+    <div class="note-badges">${urlSection}</div>
   `;
 
   // Add event listeners
@@ -289,6 +335,15 @@ function createNoteElement(note, index, totalNotes) {
       e.stopPropagation();
       handleMoveDown(note.id);
     });
+
+  // Click screenshot to toggle expanded view
+  const screenshotEl = noteCard.querySelector(".note-screenshot");
+  if (screenshotEl) {
+    screenshotEl.addEventListener("click", (e) => {
+      e.stopPropagation();
+      screenshotEl.classList.toggle("expanded");
+    });
+  }
 
   return noteCard;
 }
@@ -533,11 +588,19 @@ async function handleSendToClickUp(note, buttonEl) {
     });
 
     if (response && response.success) {
-      await StorageHelper.setNoteClickUpInfo(note.id, {
-        taskId: response.taskId,
-        taskUrl: response.taskUrl,
-      });
-      showToast("Sent to ClickUp ✓", "success");
+      // Sync = move, not copy: once the bug is in ClickUp the local note is
+      // redundant, so remove it. The toast keeps a link to the new subtask.
+      await StorageHelper.deleteNote(note.id);
+      showToast(
+        "Sent to ClickUp ✓ — removed from Webtest",
+        "success",
+        response.taskUrl
+          ? {
+              label: "Open in ClickUp",
+              onClick: () => chrome.tabs.create({ url: response.taskUrl }),
+            }
+          : null
+      );
       await loadAndRenderNotes();
       return;
     }

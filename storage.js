@@ -105,29 +105,6 @@ const StorageHelper = {
   },
 
   /**
-   * Record ClickUp sync info on a note after a successful push.
-   * @param {string} noteId - ID of note that was synced
-   * @param {Object} info - { taskId, taskUrl }
-   * @returns {Promise<void>}
-   */
-  async setNoteClickUpInfo(noteId, info = {}) {
-    try {
-      const notes = await this.getAllNotes();
-      const noteIndex = notes.findIndex((n) => n.id === noteId);
-
-      if (noteIndex !== -1) {
-        notes[noteIndex].clickupTaskId = info.taskId || null;
-        notes[noteIndex].clickupTaskUrl = info.taskUrl || null;
-        notes[noteIndex].clickupSyncedAt = Date.now();
-        await this.saveAllNotes(notes);
-      }
-    } catch (error) {
-      console.error("Error setting ClickUp info on note:", error);
-      throw error;
-    }
-  },
-
-  /**
    * Move a note up in the list (decrease index)
    * @param {string} noteId - ID of note to move
    * @returns {Promise<void>}

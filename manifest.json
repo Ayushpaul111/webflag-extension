@@ -1,10 +1,10 @@
 {
   "manifest_version": 3,
-  "name": "Web Note",
+  "name": "Webtest",
   "version": "1.0.0",
-  "description": "Save selected text on any webpage with one click and save it instantly. Organize, edit, and manage your notes easily.",
-  "permissions": ["storage", "contextMenus"],
-  "host_permissions": ["https://api.clickup.com/*"],
+  "description": "Capture web bugs in one click: screenshot, annotate, grab the element selector + environment, and send straight to ClickUp.",
+  "permissions": ["storage", "contextMenus", "unlimitedStorage"],
+  "host_permissions": ["https://api.clickup.com/*", "<all_urls>"],
   "options_page": "options.html",
   "content_scripts": [
     {
@@ -23,6 +23,15 @@
       "16": "icons/icon.png",
       "48": "icons/icon.png",
       "128": "icons/icon.png"
+    }
+  },
+  "commands": {
+    "pick-element": {
+      "suggested_key": {
+        "default": "Ctrl+Shift+E",
+        "mac": "Command+Shift+E"
+      },
+      "description": "Pick an element to report a bug"
     }
   },
   "icons": {
