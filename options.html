@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
@@ -41,100 +41,132 @@
         <div class="tab-content">
           <!-- ClickUp connection tab -->
           <section class="tab-panel active" id="tab-clickup" role="tabpanel">
-      <!-- Step 1: API token -->
-      <section class="card">
-        <div class="card-step">Step 1</div>
-        <h2>Connect with your API token</h2>
-        <p class="hint">
-          Paste your ClickUp <strong>Personal API token</strong>. Find it in
-          ClickUp under
-          <a
-            href="https://app.clickup.com/settings/apps"
-            target="_blank"
-            rel="noopener"
-            >Settings → Apps → API Token</a
-          >
-          (it starts with <code>pk_</code>).
-        </p>
-        <div class="field-row">
-          <input
-            type="password"
-            id="tokenInput"
-            class="text-input"
-            placeholder="pk_xxxxxxxx..."
-            autocomplete="off"
-            spellcheck="false"
-          />
-          <button id="verifyBtn" class="btn btn-primary">Verify</button>
-        </div>
-        <div id="tokenStatus" class="status" style="display: none"></div>
-      </section>
+            <!-- Step 1: API token -->
+            <section class="card">
+              <div class="card-step">Step 1</div>
+              <h2>Connect with your API token</h2>
+              <p class="hint">
+                Paste your ClickUp <strong>Personal API token</strong>. Find it
+                in ClickUp under
+                <a
+                  href="https://app.clickup.com/settings/apps"
+                  target="_blank"
+                  rel="noopener"
+                  >Settings → Apps → API Token</a
+                >
+                (it starts with <code>pk_</code>).
+              </p>
+              <div class="field-row">
+                <input
+                  type="password"
+                  id="tokenInput"
+                  class="text-input"
+                  placeholder="pk_xxxxxxxx..."
+                  autocomplete="off"
+                  spellcheck="false"
+                />
+                <button id="verifyBtn" class="btn btn-primary">Verify</button>
+              </div>
+              <div id="tokenStatus" class="status" style="display: none"></div>
+            </section>
 
-      <!-- Step 2: Destination -->
-      <section class="card disabled" id="destinationCard">
-        <div class="card-step">Step 2</div>
-        <h2>Choose where notes go</h2>
-        <p class="hint">
-          Pick the List that holds (or will hold) your parent task.
-        </p>
+            <!-- Step 2: Destination -->
+            <section class="card disabled" id="destinationCard">
+              <div class="card-step">Step 2</div>
+              <h2>Choose where notes go</h2>
+              <p class="hint">
+                Pick the List that holds (or will hold) your parent task.
+              </p>
 
-        <label class="field-label" for="workspaceSelect">Workspace</label>
-        <select id="workspaceSelect" class="select-input" disabled>
-          <option value="">Select a workspace…</option>
-        </select>
+              <label class="field-label" for="workspaceSelect">Workspace</label>
+              <select id="workspaceSelect" class="select-input" disabled>
+                <option value="">Select a workspace…</option>
+              </select>
 
-        <label class="field-label" for="spaceSelect">Space</label>
-        <select id="spaceSelect" class="select-input" disabled>
-          <option value="">Select a space…</option>
-        </select>
+              <label class="field-label" for="spaceSelect">Space</label>
+              <select id="spaceSelect" class="select-input" disabled>
+                <option value="">Select a space…</option>
+              </select>
 
-        <label class="field-label" for="folderSelect">Folder</label>
-        <select id="folderSelect" class="select-input" disabled>
-          <option value="">— No folder (folderless lists) —</option>
-        </select>
+              <label class="field-label" for="folderSelect">Folder</label>
+              <select id="folderSelect" class="select-input" disabled>
+                <option value="">— No folder (folderless lists) —</option>
+              </select>
 
-        <label class="field-label" for="listSelect">List</label>
-        <select id="listSelect" class="select-input" disabled>
-          <option value="">Select a list…</option>
-        </select>
-      </section>
+              <label class="field-label" for="listSelect">List</label>
+              <select id="listSelect" class="select-input" disabled>
+                <option value="">Select a list…</option>
+              </select>
+            </section>
 
-      <!-- Step 3: Parent task -->
-      <section class="card disabled" id="parentCard">
-        <div class="card-step">Step 3</div>
-        <h2>Choose the parent task</h2>
-        <p class="hint">Each note becomes a subtask of this task.</p>
+            <!-- Step 3: How captures are created -->
+            <section class="card disabled" id="parentCard">
+              <div class="card-step">Step 3</div>
+              <h2>How should captures be created?</h2>
+              <p class="hint">
+                Some teams file each bug as a subtask under one parent; others
+                create a task directly in the list. Pick what fits this project.
+              </p>
 
-        <label class="radio-row">
-          <input type="radio" name="parentMode" value="create" checked />
-          <span>Create a new task</span>
-        </label>
-        <input
-          type="text"
-          id="newTaskNameInput"
-          class="text-input"
-          placeholder="e.g. Webtest Bug Reports"
-        />
+              <label class="radio-row">
+                <input type="radio" name="taskMode" value="task" />
+                <span>As <strong>standalone tasks</strong> in the list</span>
+              </label>
+              <label class="radio-row">
+                <input type="radio" name="taskMode" value="subtask" checked />
+                <span>As <strong>subtasks</strong> of a parent task</span>
+              </label>
 
-        <label class="radio-row">
-          <input type="radio" name="parentMode" value="existing" />
-          <span>Use an existing task</span>
-        </label>
-        <select id="existingTaskSelect" class="select-input" disabled>
-          <option value="">Select a task…</option>
-        </select>
-      </section>
+              <!-- Parent task picker — only relevant in subtask mode -->
+              <div id="parentTaskBlock">
+                <p class="hint" style="margin-top: 16px">
+                  Each capture becomes a subtask of this task:
+                </p>
 
-      <!-- Save / status -->
-      <div class="footer-bar">
-        <button id="saveBtn" class="btn btn-primary btn-lg" disabled>
-          Save connection
-        </button>
-        <button id="disconnectBtn" class="btn btn-ghost" style="display: none">
-          Disconnect
-        </button>
-      </div>
-      <div id="saveStatus" class="status status-block" style="display: none"></div>
+                <label class="radio-row">
+                  <input
+                    type="radio"
+                    name="parentMode"
+                    value="create"
+                    checked
+                  />
+                  <span>Create a new task</span>
+                </label>
+                <input
+                  type="text"
+                  id="newTaskNameInput"
+                  class="text-input"
+                  placeholder="e.g. Webtest Bug Reports"
+                />
+
+                <label class="radio-row">
+                  <input type="radio" name="parentMode" value="existing" />
+                  <span>Use an existing task</span>
+                </label>
+                <select id="existingTaskSelect" class="select-input" disabled>
+                  <option value="">Select a task…</option>
+                </select>
+              </div>
+            </section>
+
+            <!-- Save / status -->
+            <div class="footer-bar">
+              <button id="saveBtn" class="btn btn-primary btn-lg" disabled>
+                Save connection
+              </button>
+              <button
+                id="disconnectBtn"
+                class="btn btn-ghost"
+                style="display: none"
+              >
+                Disconnect
+              </button>
+            </div>
+            <div
+              id="saveStatus"
+              class="status status-block"
+              style="display: none"
+            ></div>
           </section>
 
           <!-- Shortcuts & usage tab -->

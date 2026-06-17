@@ -31,6 +31,7 @@ function cacheElements() {
   el.listSelect = document.getElementById("listSelect");
 
   el.parentCard = document.getElementById("parentCard");
+  el.parentTaskBlock = document.getElementById("parentTaskBlock");
   el.newTaskNameInput = document.getElementById("newTaskNameInput");
   el.existingTaskSelect = document.getElementById("existingTaskSelect");
 
@@ -50,6 +51,9 @@ function attachListeners() {
   el.folderSelect.addEventListener("change", onFolderChange);
   el.listSelect.addEventListener("change", onListChange);
 
+  document.querySelectorAll('input[name="taskMode"]').forEach((radio) => {
+    radio.addEventListener("change", onTaskModeChange);
+  });
   document.querySelectorAll('input[name="parentMode"]').forEach((radio) => {
     radio.addEventListener("change", onParentModeChange);
   });
@@ -279,11 +283,22 @@ async function onListChange() {
   onParentModeChange();
 }
 
-/* ---------- Step 3: parent task ---------- */
+/* ---------- Step 3: task mode + parent task ---------- */
+
+function isSubtaskMode() {
+  const checked = document.querySelector('input[name="taskMode"]:checked');
+  return !checked || checked.value === "subtask";
+}
 
 function isExistingMode() {
   const checked = document.querySelector('input[name="parentMode"]:checked');
   return checked && checked.value === "existing";
+}
+
+function onTaskModeChange() {
+  // Only show the parent-task picker when filing captures as subtasks.
+  el.parentTaskBlock.style.display = isSubtaskMode() ? "block" : "none";
+  updateSaveEnabled();
 }
 
 function onParentModeChange() {
@@ -295,11 +310,13 @@ function onParentModeChange() {
 
 function updateSaveEnabled() {
   const hasList = !!el.listSelect.value;
-  const ready =
-    hasList &&
-    (isExistingMode()
+  let ready = hasList;
+  // Subtask mode also needs a parent (an existing task or a new task name).
+  if (hasList && isSubtaskMode()) {
+    ready = isExistingMode()
       ? !!el.existingTaskSelect.value
-      : !!el.newTaskNameInput.value.trim());
+      : !!el.newTaskNameInput.value.trim();
+  }
   el.saveBtn.disabled = !ready;
 }
 
@@ -310,22 +327,25 @@ async function handleSave() {
   setStatus(el.saveStatus, "info", `<span class="spinner"></span>Saving…`);
 
   try {
-    let parentTaskId;
-    let parentTaskName;
+    const subtaskMode = isSubtaskMode();
+    let parentTaskId = null;
+    let parentTaskName = null;
 
-    if (isExistingMode()) {
-      parentTaskId = el.existingTaskSelect.value;
-      parentTaskName = selectedLabel(el.existingTaskSelect);
-    } else {
-      // Create the parent task (no `parent` => top-level task).
-      const name = el.newTaskNameInput.value.trim();
-      const created = await ClickUpAPI.createTask(
-        currentToken,
-        el.listSelect.value,
-        { name }
-      );
-      parentTaskId = created.id;
-      parentTaskName = name;
+    if (subtaskMode) {
+      if (isExistingMode()) {
+        parentTaskId = el.existingTaskSelect.value;
+        parentTaskName = selectedLabel(el.existingTaskSelect);
+      } else {
+        // Create the parent task (no `parent` => top-level task).
+        const name = el.newTaskNameInput.value.trim();
+        const created = await ClickUpAPI.createTask(
+          currentToken,
+          el.listSelect.value,
+          { name }
+        );
+        parentTaskId = created.id;
+        parentTaskName = name;
+      }
     }
 
     const config = {
@@ -338,18 +358,22 @@ async function handleSave() {
       folderName: el.folderSelect.value ? selectedLabel(el.folderSelect) : null,
       listId: el.listSelect.value,
       listName: selectedLabel(el.listSelect),
+      taskMode: subtaskMode ? "subtask" : "task",
       parentTaskId,
       parentTaskName,
     };
 
     await ClickUpConfig.save(config);
 
+    const where = `in <strong>${escapeHtml(config.listName)}</strong>`;
     setStatus(
       el.saveStatus,
       "success",
-      `✓ Connected! Notes will be added as subtasks of <strong>${escapeHtml(
-        parentTaskName
-      )}</strong> in <strong>${escapeHtml(config.listName)}</strong>.`
+      subtaskMode
+        ? `✓ Connected! Captures will be added as subtasks of <strong>${escapeHtml(
+            parentTaskName
+          )}</strong> ${where}.`
+        : `✓ Connected! Captures will be added as tasks ${where}.`
     );
     el.disconnectBtn.style.display = "inline-block";
   } catch (error) {
@@ -372,6 +396,14 @@ async function handleDisconnect() {
   resetSelect(el.listSelect, "Select a list…");
   resetSelect(el.existingTaskSelect, "Select a task…");
   el.newTaskNameInput.value = "";
+
+  // Reset Step 3 back to the default subtask mode.
+  const subtaskRadio = document.querySelector(
+    'input[name="taskMode"][value="subtask"]'
+  );
+  if (subtaskRadio) subtaskRadio.checked = true;
+  el.parentTaskBlock.style.display = "block";
+
   el.destinationCard.classList.add("disabled");
   el.parentCard.classList.add("disabled");
   el.disconnectBtn.style.display = "none";
@@ -445,8 +477,23 @@ async function prefillFromSavedConfig() {
     if (!config.listId) return;
     el.listSelect.value = config.listId;
 
-    // Step 3: parent task — default to "use existing" with the saved one.
+    // Step 3: restore the saved task mode.
+    const mode = config.taskMode || "subtask";
+    const modeRadio = document.querySelector(
+      `input[name="taskMode"][value="${mode}"]`
+    );
+    if (modeRadio) modeRadio.checked = true;
     el.parentCard.classList.remove("disabled");
+    onTaskModeChange();
+
+    if (mode === "task") {
+      // Standalone-task mode needs no parent — connection is complete.
+      el.disconnectBtn.style.display = "inline-block";
+      updateSaveEnabled();
+      return;
+    }
+
+    // Subtask mode: default to "use existing" with the saved parent.
     const tasks = await ClickUpAPI.getTasks(config.token, config.listId);
     fillSelect(
       el.existingTaskSelect,

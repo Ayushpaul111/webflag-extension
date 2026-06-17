@@ -101,8 +101,15 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
  */
 async function sendNoteToClickUp(note) {
   const config = await ClickUpConfig.get();
+  const mode = config && config.taskMode === "task" ? "task" : "subtask";
 
-  if (!config || !config.token || !config.listId || !config.parentTaskId) {
+  // Always need a token + list; subtask mode additionally needs a parent task.
+  if (
+    !config ||
+    !config.token ||
+    !config.listId ||
+    (mode !== "task" && !config.parentTaskId)
+  ) {
     return { success: false, notConnected: true };
   }
 
@@ -127,7 +134,8 @@ async function sendNoteToClickUp(note) {
     const created = await ClickUpAPI.createTask(config.token, config.listId, {
       name,
       description,
-      parent: config.parentTaskId,
+      // In "task" mode there's no parent — it becomes a top-level task.
+      parent: mode === "task" ? undefined : config.parentTaskId,
     });
 
     // Upload the screenshot as an attachment (best-effort; a failure here

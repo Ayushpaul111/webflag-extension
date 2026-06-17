@@ -161,9 +161,16 @@ decouple screenshots into per-id keys / IndexedDB and downscale before storing.
 Auth is a **Personal API token** (`pk_...`) sent straight in the `Authorization`
 header — no OAuth, no backend. `clickup.js` (`ClickUpAPI`) is a thin wrapper over
 ClickUp REST v2; `config.js` (`ClickUpConfig`) reads/writes the saved connection
-and exposes `isConnected()` (token + listId + parentTaskId). Each pushed note
-becomes a subtask of the configured parent task. A "not connected" push returns
+and exposes `isConnected()`. A "not connected" push returns
 `{ success:false, notConnected:true }` so the UI can prompt for settings.
+
+**Task mode** (`config.taskMode`, set in options Step 3, default `"subtask"`):
+- `"subtask"` — each capture becomes a subtask of `config.parentTaskId` (needs
+  token + listId + parentTaskId to be connected).
+- `"task"` — each capture becomes a top-level task directly in the List (needs
+  only token + listId; `parentTaskId` is null). `background.js` omits the
+  `parent` field on `createTask` in this mode. Older saved configs without
+  `taskMode` are treated as `"subtask"`.
 
 - **Subtask description** is built like a bug report: the text, the source URL,
   an `🎯 Element` block (selector/tag/test-id/text), and a `🐞 Captured

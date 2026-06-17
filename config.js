@@ -12,7 +12,8 @@
  *   spaceId, spaceName,
  *   folderId | null, folderName | null,
  *   listId, listName,
- *   parentTaskId, parentTaskName
+ *   taskMode: "subtask" | "task",
+ *   parentTaskId | null, parentTaskName | null   // null in "task" mode
  * }
  */
 const ClickUpConfig = {
@@ -60,12 +61,15 @@ const ClickUpConfig = {
   },
 
   /**
-   * Whether the user has a usable connection (token + destination + parent).
+   * Whether the user has a usable connection. Always needs a token + list.
+   * In subtask mode it also needs a parent task; in task mode a list is enough.
    * @returns {Promise<boolean>}
    */
   async isConnected() {
     const config = await this.get();
-    return !!(config && config.token && config.listId && config.parentTaskId);
+    if (!config || !config.token || !config.listId) return false;
+    const mode = config.taskMode || "subtask";
+    return mode === "task" ? true : !!config.parentTaskId;
   },
 };
 
