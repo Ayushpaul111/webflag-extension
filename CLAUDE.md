@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## What this is
 
-"Webtest" is a Manifest V3 Chrome extension (vanilla JS — no build step, no
+"WebFlag" is a Manifest V3 Chrome extension (vanilla JS — no build step, no
 bundler, no dependencies, no tests). Its real purpose is a **QA tester's
 bug-capture tool**: a tester finds a bug on a web app, captures it (with a
 screenshot, the page environment, and the offending element), optionally
@@ -24,7 +24,7 @@ Personal API token. Keep new features serverless and token-based.
    opens the capture modal in "🐞 Report Bug" mode (empty description field).
 2. **Text selection** (secondary) — Grammarly-style floating icon on text
    selection → capture modal ("💾 Save Note" mode, description prefilled with the
-   selected text). Also available via the right-click "Save selection to Webtest" context
+   selected text). Also available via the right-click "Save selection to WebFlag" context
    menu (text only, no screenshot/element).
 
 Both paths open the **same capture modal**, which auto-attaches a **screenshot**
@@ -106,7 +106,7 @@ currentEnv / currentScreenshot / currentElement`.
     are taken **with our own overlay/icon hidden** so they aren't in the shot.
   - Listens for `toggleExtension` and `startElementPicker` messages.
 - **`background.js`** (service worker) — owns the `contextMenus` "Save selection
-  to Webtest" entry, opens options on first install, runs `chrome.commands.onCommand`
+  to WebFlag" entry, opens options on first install, runs `chrome.commands.onCommand`
   (`pick-element` → message the active tab), and is the message hub:
   - `captureVisibleTab` → `chrome.tabs.captureVisibleTab(windowId, {format:"jpeg",
 quality:60})`.

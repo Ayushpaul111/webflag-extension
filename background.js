@@ -5,7 +5,7 @@ importScripts("storage.js", "clickup.js", "config.js");
 chrome.runtime.onInstalled.addListener((details) => {
   chrome.contextMenus.create({
     id: "saveToNotes",
-    title: "Save selection to Webtest",
+    title: "Save selection to WebFlag",
     contexts: ["selection"],
   });
 

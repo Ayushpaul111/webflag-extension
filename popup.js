@@ -592,7 +592,7 @@ async function handleSendToClickUp(note, buttonEl) {
       // redundant, so remove it. The toast keeps a link to the new subtask.
       await StorageHelper.deleteNote(note.id);
       showToast(
-        "Sent to ClickUp ✓ — removed from Webtest",
+        "Sent to ClickUp ✓ — removed from WebFlag",
         "success",
         response.taskUrl
           ? {

@@ -1,6 +1,6 @@
 {
   "manifest_version": 3,
-  "name": "Webtest",
+  "name": "WebFlag",
   "version": "1.0.0",
   "description": "Capture web bugs in one click: screenshot, annotate, grab the element selector + environment, and send straight to ClickUp.",
   "permissions": ["storage", "contextMenus", "unlimitedStorage"],

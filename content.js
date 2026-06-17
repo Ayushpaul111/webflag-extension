@@ -81,7 +81,7 @@ function createSelectionIcon() {
     </svg>
   `;
 
-  selectionIcon.title = "Save to Webtest";
+  selectionIcon.title = "Save to WebFlag";
   document.body.appendChild(selectionIcon);
 
   // Click handler
@@ -1252,7 +1252,7 @@ async function handleSaveFromModal() {
       saveBtn.disabled = false;
       btnContent.innerHTML = `<span>Save Note</span>`;
       alert(
-        "Webtest was updated. Please reload this page, then save your note again."
+        "WebFlag was updated. Please reload this page, then save your note again."
       );
       return;
     }
@@ -1347,7 +1347,7 @@ async function handleSendToClickUpFromModal() {
     if (response && response.__contextInvalid) {
       restore();
       alert(
-        "Webtest was updated. Please reload this page, then send to ClickUp again."
+        "WebFlag was updated. Please reload this page, then send to ClickUp again."
       );
       return;
     }
@@ -1371,7 +1371,7 @@ async function handleSendToClickUpFromModal() {
     restore();
     if (response && response.notConnected) {
       alert(
-        "Connect ClickUp first: open the Webtest popup, click the gear icon, connect your ClickUp account, then try again."
+        "Connect ClickUp first: open the WebFlag popup, click the gear icon, connect your ClickUp account, then try again."
       );
     } else {
       alert(
